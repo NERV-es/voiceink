@@ -14,6 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - uses: hmarr/auto-approve-action@v4
+      - uses: hmarr/auto-approve-action@b40d8db65b9bd8b4b69f59cd778970b97e1caa44 # v4
         with:
           review-message: "Auto-approved Dependabot dependency update."

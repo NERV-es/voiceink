@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: skip
-        uses: fkirc/skip-duplicate-actions@v5
+        uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5
         with:
           cancel_others: 'true'
           concurrent_skipping: 'outdated_runs'
