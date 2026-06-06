@@ -11,12 +11,17 @@ struct OnboardingModelDownloadView: View {
     @State private var showTutorial = false
 
     private let turboModel: WhisperModel = {
-        guard let model = TranscriptionModelRegistry.models.first(
+        if let model = TranscriptionModelRegistry.models.first(
             where: { $0.name == "ggml-large-v3-turbo-q5_0" }
-        ) as? WhisperModel else {
-            preconditionFailure("Expected bundled turbo model to be a WhisperModel")
+        ) as? WhisperModel {
+            return model
         }
-        return model
+        // The bundled model may have been renamed in the registry. Fall back to any
+        // available WhisperModel rather than crashing onboarding in production.
+        if let fallback = TranscriptionModelRegistry.models.compactMap({ $0 as? WhisperModel }).first {
+            return fallback
+        }
+        preconditionFailure("No WhisperModel available in TranscriptionModelRegistry")
     }()
 
     var body: some View {
