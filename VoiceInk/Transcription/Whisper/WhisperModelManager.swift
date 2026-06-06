@@ -122,6 +122,10 @@ class WhisperModelManager: ObservableObject {
                 let sharedURLs = try FileManager.default.contentsOfDirectory(at: sharedDir, includingPropertiesForKeys: nil)
                 for url in sharedURLs {
                     guard url.pathExtension == "bin" else { continue }
+                    // Skip broken symlinks: fileExists follows the link, so a
+                    // dangling entry resolves to false and would otherwise fail
+                    // at load time. Only surface models whose target exists.
+                    guard FileManager.default.fileExists(atPath: url.resolvingSymlinksInPath().path) else { continue }
                     let name = url.deletingPathExtension().lastPathComponent
                     if seenNames.insert(name).inserted {
                         models.append(WhisperModelFile(name: name, url: url))
@@ -277,6 +281,12 @@ class WhisperModelManager: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: sharedDir, withIntermediateDirectories: true)
             let sharedURL = sharedDir.appendingPathComponent(model.filename)
+            // A dangling symlink leaves fileExists() false while still occupying
+            // the path, so createSymbolicLink would throw. Replace any stale link.
+            if (try? FileManager.default.destinationOfSymbolicLink(atPath: sharedURL.path)) != nil,
+               !FileManager.default.fileExists(atPath: sharedURL.path) {
+                try FileManager.default.removeItem(at: sharedURL)
+            }
             if !FileManager.default.fileExists(atPath: sharedURL.path) {
                 try FileManager.default.createSymbolicLink(at: sharedURL, withDestinationURL: destinationURL)
             }
@@ -353,6 +363,16 @@ class WhisperModelManager: ObservableObject {
     }
 
     func deleteModel(_ model: WhisperModelFile) async {
+        // Only delete files VoiceInk owns. Shared models live in the cross-app
+        // LocalModels registry; removing the backing file would delete it for
+        // other apps, so for those we drop only our in-memory reference.
+        let ownedPrefix = modelsDirectory.resolvingSymlinksInPath().path
+        let resolvedPath = model.url.resolvingSymlinksInPath().path
+        guard resolvedPath == ownedPrefix || resolvedPath.hasPrefix(ownedPrefix + "/") else {
+            availableModels.removeAll { $0.id == model.id }
+            onModelDeleted?(model.name)
+            return
+        }
         do {
             try FileManager.default.removeItem(at: model.url)
 
