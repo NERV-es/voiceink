@@ -702,7 +702,7 @@
 			repositoryURL = "https://github.com/tisfeng/SelectedTextKit";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.6.2;
+				minimumVersion = 2.6.4;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
